@@ -1,0 +1,3 @@
+[submodule "emulator/lib/py65emu"]
+	path = emulator/lib/py65emu
+	url = https://github.com/docmarionum1/py65emu
