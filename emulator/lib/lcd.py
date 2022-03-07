@@ -1,5 +1,4 @@
 from cmath import log10
-from time import sleep
 import tkinter as tk
 from math import floor, log10
 import threading
@@ -116,57 +115,33 @@ class Screen(threading.Thread):
         self.queue.append((self.__fill, (color,)))
     
 
-s = Screen(64, 128, 'white', 10)
-s.draw(0, 0, 'red')
-s.draw(1, 0, 'green')
-s.draw(2, 0, 'blue')
-s.draw(3, 0, 'yellow')
-s.draw(4, 0, 'black')
-s.draw(5, 0, 'white')
-s.draw(6, 0, 'red')
-s.draw(7, 0, 'green')
-s.draw(8, 0, 'blue')
-s.draw(9, 0, 'yellow')
-s.draw(10, 0, 'black')
-s.draw(11, 11, 'red')
-s.draw(12, 11, 'green')
-s.draw(13, 11, 'blue')
-s.draw(14, 11, 'yellow')
-
 class LCD:
 
 
     def __init__(self):
-        self.screen = Screen(128,64, scale=2)
+        self.screen = Screen(64, 128, 'white', 10)
         self.col = 0x00000000
-        self.row = 0x0000
+        self.page = 0x0000
         self.data = [[0 for _ in range(128)] for _ in range(64)]
 
-        addrs = {
-            '0101010111x': self.DON,
-            '0101011xxxx': self.PAGEADDR,
-            '0100001xxxx': self.UCOLADD,
-            '0100000xxxx': self.LCOLADD,
-            '01011100011': self.NOP,
-            '101xxxxxxxx': self.READ,
-            '110xxxxxxxx': self.WRITE,
-            '01011100010': self.RESET
+        self.instr = {
+            (0b01010101110, 0b01010101111):  self.DON,
+            (0b01010110000, 0b01010111111):  self.PAGEADDR,
+            (0b01000010000, 0b01000011111): self.UCOLADD,
+            (0b01000000000, 0b01000001111): self.LCOLADD,
+            (0b01011100011, 0b01011100011): self.NOP,
+            (0b10100000000, 0b10111111111):  self.READ,
+            (0b11000000000, 0b11011111111):  self.WRITE,
+            (0b01011100010, 0b01011100010): self.RESET
         }
 
-        self.instr = {}
-
-        for key,val in addrs.items():
-            if key.find('x') != -1:
-                xs = key.count('x')
-                for i in range(2**xs):
-                    nkey = key.replace('x'*xs,bin(i)[2:].zfill(xs))
-                    self.instr[nkey] = val
-            else:
-                self.instr[key] = val
 
 
-
-
+    def __read(self, addr):
+        for key, item in self.instr.items():
+            if addr >= key[0] and addr <= key[1]:
+                return item
+        pass
 
     # memory:
     #   start: start address
@@ -178,8 +153,8 @@ class LCD:
             addr = block['start'] + i
             if block['memory'][i] != 0:
                 val = block['memory'][i]
-                addr = f'{addr%16:03b}{val:08b}'
-                self.instr[addr](addr)
+                addr = addr%8 << 8 & 0b0111 | val
+                self.__read(addr)(addr)
 
                 
 
@@ -190,15 +165,25 @@ class LCD:
     
     # 0101011xxxx - page address
     def PAGEADDR(self, addr):
-        pass
+        arg = addr & 0b1111
+        print(f'PAGEADDR {arg:04b}')
+        self.page = addr%16
 
     # 0100001xxxx - upper column address
     def UCOLADD(self, addr):
-        pass
+        arg = addr & 0b1111
+        pcol = self.col
+
+        self.col = self.col & 0b00001111 | arg << 4
+        print(f'LCOLADD {arg:04b} {pcol:08b} {self.col:08b}')
 
     # 0100000xxxx - lower column address
     def LCOLADD(self, addr):
-        pass
+        arg = addr & 0b1111
+        pcol = self.col
+
+        self.col = self.col & 0b11110000 | arg
+        print(f'LCOLADD {arg:04b} {pcol:08b} {self.col:08b}')
 
     # 01011100011 - NOP
     def NOP(self, addr):
@@ -211,6 +196,7 @@ class LCD:
 
     # 110xxxxxxxx - data write
     def WRITE(self, addr):
+        
         pass
     
     # 01011100010 - reset
@@ -219,28 +205,29 @@ class LCD:
 
 
 
-    # LCD().process({
-    #     'start': 0x6000,
-    #     'length': 0x000F,
-    #     'readonly': False,
-    #     'memory': [
-    #         0x00, # 0000
-    #         0x00, # 0001
-    #         0b11100011, # 0010
-    #         0x00, # 0011
-    #         0x00, # 0100
-    #         0x00, # 0101
-    #         0x00, # 0110
-    #         0x00, # 0111
-    #         0x00, # 1000
-    #         0x00, # 1001
-    #         0x00, # 1010
-    #         0x00, # 1011
-    #         0x00, # 1100
-    #         0x00, # 1101
-    #         0x00  # 1110
-    #     ]
-    # })
+
+LCD().process({
+    'start': 0x6000,
+    'length': 0x000F,
+    'readonly': False,
+    'memory': [
+        0x00, # 0000
+        0x00, # 0001
+        0b01000011111, # 0010
+        0x00, # 0011
+        0x00, # 0100
+        0x00, # 0101
+        0x00, # 0110
+        0x00, # 0111
+        0x00, # 1000
+        0x00, # 1001
+        0b01000000101, # 1010
+        0x00, # 1011
+        0x00, # 1100
+        0x00, # 1101
+        0x00  # 1110
+    ]
+})
 
 
 
