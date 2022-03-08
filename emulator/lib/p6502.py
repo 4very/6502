@@ -1,6 +1,6 @@
 from lib.py65emu.py65emu.cpu import CPU
 from lib.py65emu.py65emu.mmu import MMU
-from lcd import LCD
+from lib.lcd import LCD
 
 
 class p6502:
@@ -27,12 +27,18 @@ class p6502:
 
     # read 16-bit hex value from memory in little-endian format
     def read16Hex(self, addr):
-        return hex(self.mmu.read(addr+1) << 8 | self.mmu.read(addr))
+        return self.mmu.read(addr+1) << 8 | self.mmu.read(addr)
 
     # step the 6502 emulator
     def step(self):
         self.cpu.step()
-        self.lcd.process(self.mmu.getBlock(0x6000))
+        block = self.mmu.getBlock(0x6000)
+        self.lcd.process(block)
+        self._blank(block)
+    
+    def _blank(self, block):
+        for i in range(block['length']):
+            self.mmu.write(i+block['start'], 0)
         
             
 

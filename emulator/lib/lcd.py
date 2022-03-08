@@ -11,6 +11,7 @@ class Screen(threading.Thread):
         self.height = height
         self.width = width
         self.scale = scale
+        self.vpages = 8
         
         self.sheight = width*scale + (scale - 1)
         self.swidth = height*scale + (scale - 1)
@@ -44,7 +45,7 @@ class Screen(threading.Thread):
 
         self.postext = tk.Text(self.root, 
             height=1, 
-            width=floor(log10(self.width))+floor(log10(self.height))+10,
+            width=90,
             relief=tk.FLAT,
             background=self.bg,
             bg=self.bg,
@@ -72,13 +73,22 @@ class Screen(threading.Thread):
         y = self.canvas.winfo_pointery() - self.canvas.winfo_rooty()
 
         if x < 0 or y < 0 or x > self.swidth or y > self.sheight: 
-            xscale = '---'
-            yscale = '---'
+            xscale = '-'
+            yscale = '-'
+            page = '-'
+            data = '-'
+            column = '-'
+            self.postext.insert(tk.END, 'out of bounds')
         else:
-            xscale = str(floor(x/self.scale))
-            yscale = str(floor(y/self.scale))
-
-        self.postext.insert(tk.END, 'x: ' + str(xscale) + ' y: ' + str(yscale))
+            xscale = floor(x/self.scale)
+            yscale = floor(y/self.scale)
+            page = floor(yscale/self.vpages)
+            data = yscale % self.vpages
+            column = xscale
+            self.postext.insert(tk.END, 'x: ' + str(xscale) + ' y: ' + str(yscale) + '; ')
+            self.postext.insert(tk.END, f'page {page} data {data} col {column}; ')
+            self.postext.insert(tk.END, f'page {page:04b} data {data:04b} col {column:08b}')
+        
         self.postext.update()
         self.root.update()
 
@@ -161,6 +171,7 @@ class LCD:
     
     # 0101010111x - display on/off
     def DON(self, addr):
+        self.LCOLADD(0)
         pass
     
     # 0101011xxxx - page address
@@ -198,14 +209,16 @@ class LCD:
     def WRITE(self, addr):
         arg = addr & 0b11111111
         print(f'WRITE {arg:08b} {self.col:08b} {self.page:04b}')
-        for i in range(self.page << 3, (self.page << 3) + 8):
-            self.data[self.col][i] = arg & 0b1
-            if arg & 0b1:
-                self.screen.draw(self.col, i, 'black')
-            arg = arg >> 1
         
-        pass
-    
+        for i in range(self.page << 3, (self.page << 3) + 8):
+            
+            bit = arg & 0b1 
+            arg = arg >> 1
+
+            self.data[self.col][i] = bit
+            self.screen.draw(self.col, i, 'black' if bit else 'white')
+            
+            
     # 01011100010 - reset
     def RESET(self, addr):
         pass
