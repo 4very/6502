@@ -122,7 +122,7 @@ class LCD:
         self.screen = Screen(64, 128, 'white', 10)
         self.col = 0x00000000
         self.page = 0x0000
-        self.data = [[0 for _ in range(128)] for _ in range(64)]
+        self.data = [[0 for _ in range(64)] for _ in range(128)]
 
         self.instr = {
             (0b01010101110, 0b01010101111):  self.DON,
@@ -153,7 +153,7 @@ class LCD:
             addr = block['start'] + i
             if block['memory'][i] != 0:
                 val = block['memory'][i]
-                addr = addr%8 << 8 & 0b0111 | val
+                addr = (addr & 0b0111) << 8 | val
                 self.__read(addr)(addr)
 
                 
@@ -167,7 +167,7 @@ class LCD:
     def PAGEADDR(self, addr):
         arg = addr & 0b1111
         print(f'PAGEADDR {arg:04b}')
-        self.page = addr%16
+        self.page = arg
 
     # 0100001xxxx - upper column address
     def UCOLADD(self, addr):
@@ -175,7 +175,7 @@ class LCD:
         pcol = self.col
 
         self.col = self.col & 0b00001111 | arg << 4
-        print(f'LCOLADD {arg:04b} {pcol:08b} {self.col:08b}')
+        print(f'UCOLADD {arg:04b} {pcol:08b} {self.col:08b}')
 
     # 0100000xxxx - lower column address
     def LCOLADD(self, addr):
@@ -196,6 +196,13 @@ class LCD:
 
     # 110xxxxxxxx - data write
     def WRITE(self, addr):
+        arg = addr & 0b11111111
+        print(f'WRITE {arg:08b} {self.col:08b} {self.page:04b}')
+        for i in range(self.page << 3, (self.page << 3) + 8):
+            self.data[self.col][i] = arg & 0b1
+            if arg & 0b1:
+                self.screen.draw(self.col, i, 'black')
+            arg = arg >> 1
         
         pass
     
@@ -206,28 +213,73 @@ class LCD:
 
 
 
-LCD().process({
-    'start': 0x6000,
-    'length': 0x000F,
-    'readonly': False,
-    'memory': [
-        0x00, # 0000
-        0x00, # 0001
-        0b01000011111, # 0010
-        0x00, # 0011
-        0x00, # 0100
-        0x00, # 0101
-        0x00, # 0110
-        0x00, # 0111
-        0x00, # 1000
-        0x00, # 1001
-        0b01000000101, # 1010
-        0x00, # 1011
-        0x00, # 1100
-        0x00, # 1101
-        0x00  # 1110
-    ]
-})
+# l = LCD()
+# l.process({
+#     'start': 0x6000,
+#     'length': 0x000F,
+#     'readonly': False,
+#     'memory': [
+#         0x00, # 0000
+#         0x00, # 0001
+#         0b10110001, # 0010
+#         0x00, # 0011
+#         0x00, # 0100
+#         0x00, # 0101
+#         0x00, # 0110
+#         0x00, # 0111
+#         0x00, # 1000
+#         0x00, # 1001
+#         0x00, # 1010
+#         0x00, # 1011
+#         0x00, # 1100
+#         0x00, # 1101
+#         0x00  # 1110
+#     ]
+# })
+# l.process({
+#     'start': 0x6000,
+#     'length': 0x000F,
+#     'readonly': False,
+#     'memory': [
+#         0x00, # 0000
+#         0x00, # 0001
+#         0b00010011, # 0010
+#         0x00, # 0011
+#         0x00, # 0100
+#         0x00, # 0101
+#         0x00, # 0110
+#         0x00, # 0111
+#         0x00, # 1000
+#         0x00, # 1001
+#         0b00000010, # 1010
+#         0x00, # 1011
+#         0x00, # 1100
+#         0x00, # 1101
+#         0x00  # 1110
+#     ]
+# })
+# l.process({
+#     'start': 0x6000,
+#     'length': 0x000F,
+#     'readonly': False,
+#     'memory': [
+#         0x00, # 0000
+#         0x00, # 0001
+#         0x00, # 0010
+#         0x00, # 0011
+#         0x00, # 0100
+#         0x00, # 0101
+#         0b10101010, # 0110
+#         0x00, # 0111
+#         0x00, # 1000
+#         0x00, # 1001
+#         0x00, # 1010
+#         0x00, # 1011
+#         0x00, # 1100
+#         0x00, # 1101
+#         0x00  # 1110
+#     ]
+# })
 
 
 
