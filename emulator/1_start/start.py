@@ -1,15 +1,23 @@
 
 # from https://github.com/docmarionum1/py65emu/blob/master/README.rst
 
+from os.path import join, dirname, basename, splitext
+from os import getcwd
+
+import sys
+sys.path.insert(0, join(getcwd(), 'emulator'))
+
 from lib.py65emu.py65emu.cpu import CPU
 from lib.py65emu.py65emu.mmu import MMU
 
+from os.path import basename
+from os import getcwd
 
-filename = 'start'
-# lda #$ff
-# sta $0x00
 
-f = open(r'./programs/bin/' + filename + '.bin', 'rb')
+folder = basename(dirname(__file__))
+filename = splitext(basename(__file__))[0]
+
+f = open(f'./programs/{folder}/{filename}.bin', 'rb')
 
 mmu = MMU([
     (0x00, 0x200),

@@ -6,7 +6,27 @@ SLCOLADDR = %00000000 ; LCD 010
 WRITE = %110
 
 
+
+
     .org $8000
+
+
+
+
+
+
+
+;----------------------------------------------------------------------
+;
+; 0x0001: start page
+; 0x0002: start column (upper)
+; 0x0003: start column (lower)
+
+; 0x0004: start addr
+; 0x0005: end addr
+
+
+lcd_write:
     lda #$00
     sta $0003
 
